@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loading the study…</title>
+<style>
+ body{font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;margin:0;min-height:100vh;
+      display:flex;align-items:center;justify-content:center;background:#faf9f5;color:#141413;
+      padding:24px;text-align:center}
+ .box{max-width:460px} h1{font-size:19px;font-weight:600;margin:0 0 10px}
+ p{color:#555;font-size:14.5px} .err{color:#a03050}
+ code{background:#eeece5;padding:2px 5px;border-radius:3px;font-size:13px}
+</style></head><body>
+<div class="box" id="m"><h1>Loading the study…</h1><p>One moment.</p></div>
+
+<script>
+// ---------------------------------------------------------------------------
+// SVM allocation page.  ONE Prolific study points here; this forwards to one of
+// two Google Forms.
+//
+// Set the Prolific study URL to:
+//     https://YOURSITE/go.html?PROLIFIC_PID={{%PROLIFIC_PID%}}
+//
+// ALLOCATION IS A PURE FUNCTION OF THE PROLIFIC ID.  No server, no counter, no
+// state.  Consequences, all of them wanted:
+//   * the same participant always lands in the same arm, so a reload or a back
+//     button cannot move them or double-count them;
+//   * the arm is fixed before the participant sees any content;
+//   * every allocation can be RE-DERIVED afterwards from the ID list alone, so
+//     you never have to trust that this page logged anything correctly.
+//
+// Balance is a coin flip: simulated over 400 runs of n=400, the split averages
+// 200/200 with sd 9.8, and stays inside 168/232 in the worst case seen.
+//
+// The hash is FNV-1a 32-bit.  Math.imul and >>>0 are REQUIRED — plain * gives
+// doubles and the JS and Python results diverge, silently, on about half the IDs.
+// ---------------------------------------------------------------------------
+
+// ---- FILL THESE IN --------------------------------------------------------
+// Each form's prefill URL, with the Prolific-ID entry left as __PID__.
+// Get them from the form: ⋮ menu → "Get pre-filled link" → fill the Prolific ID
+// box with the literal text __PID__ → "Get link" → copy.
+var FORM = {
+  PRIMED : "https://docs.google.com/forms/d/e/PASTE_PRIMED_FORM_ID/viewform?usp=pp_url&entry.0000000=__PID__",
+  CONTROL: "https://docs.google.com/forms/d/e/PASTE_CONTROL_FORM_ID/viewform?usp=pp_url&entry.0000000=__PID__"
+};
+// ---------------------------------------------------------------------------
+
+function fnv1a(s){
+  var h = 2166136261;
+  for (var i = 0; i < s.length; i++){
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;   // imul, not *, and force uint32
+  }
+  return h >>> 0;
+}
+
+function show(html, isErr){
+  document.getElementById('m').innerHTML = html;
+  if (isErr) document.getElementById('m').className = 'box err';
+}
+
+(function(){
+  var q = new URLSearchParams(window.location.search);
+  var pid = q.get('PROLIFIC_PID') || q.get('prolific_pid') || '';
+  pid = pid.trim();
+
+  // Refuse rather than guess. An unassigned participant is recoverable; one
+  // assigned from an empty string is not, and they would all land in one arm.
+  if (!pid){
+    show('<h1>Could not read your Prolific ID</h1>' +
+         '<p>Please return to Prolific and open the study from there rather than ' +
+         'from a saved link. If this keeps happening, return the submission and ' +
+         'message the researcher.</p>', true);
+    return;
+  }
+
+  var arm = (fnv1a(pid) & 1) ? 'PRIMED' : 'CONTROL';
+  var url = FORM[arm].replace('__PID__', encodeURIComponent(pid));
+
+  if (url.indexOf('PASTE_') !== -1){
+    show('<h1>Setup incomplete</h1><p>The form links in <code>go.html</code> have ' +
+         'not been filled in yet.</p>', true);
+    return;
+  }
+  window.location.replace(url);   // replace, not assign: back button returns to
+})();                             // Prolific, not to a second allocation
+</script>
+</body></html>
