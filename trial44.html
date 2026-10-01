@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Everyday Thoughts</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #fcfcfb; color: #222; margin: 0; padding: 40px 16px; text-align: center; }
+</style>
+</head>
+<body>
+<p id="msg">Loading the survey…</p>
+<script>
+// trial44 router: sends each Prolific participant to V1 or V2 of the trial44 forms.
+// Assignment is fixed by the Prolific ID (same ID -> same version every time), roughly 50/50.
+(function () {
+  var V1 = "https://docs.google.com/forms/d/e/1FAIpQLSerKQg-HnpuncB0ifYAvuWs3DvUGf0RIdct8bULEWkmPWS6KA/viewform?usp=pp_url&entry.501456709=";
+  var V2 = "https://docs.google.com/forms/d/e/1FAIpQLSc4JWBPY7eNGtxOCZ6NFeshbpv_aWD4qcGtIK2vNb27DfUfCg/viewform?usp=pp_url&entry.2063661132=";
+
+  var q = new URLSearchParams(window.location.search);
+  var pid = (q.get("PROLIFIC_PID") || "").trim();
+  if (!pid) {
+    document.getElementById("msg").textContent =
+      "No Prolific ID was found in the link. Please return to Prolific and open the study from there.";
+    return;
+  }
+  var force = q.get("v");                  // testing only: ?v=1 or ?v=2 forces a version
+  var h = 0;                               // simple string hash of the ID
+  for (var i = 0; i < pid.length; i++) { h = (h * 31 + pid.charCodeAt(i)) >>> 0; }
+  var useV2 = force === "2" ? true : force === "1" ? false : (h % 2 === 1);
+  window.location.replace((useV2 ? V2 : V1) + encodeURIComponent(pid));
+})();
+</script>
+</body>
+</html>
