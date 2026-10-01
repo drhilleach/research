@@ -1,73 +1,35 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Loading the study…</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Everyday Thoughts</title>
 <style>
- body{font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;margin:0;min-height:100vh;
-      display:flex;align-items:center;justify-content:center;background:#faf9f5;color:#141413;
-      padding:24px;text-align:center}
- .box{max-width:460px} h1{font-size:19px;font-weight:600;margin:0 0 10px}
- p{color:#555;font-size:14.5px} .err{color:#a03050}
- code{background:#eeece5;padding:2px 5px;border-radius:3px;font-size:13px}
-</style></head><body>
-<div class="box" id="m"><h1>Loading the study…</h1><p>One moment.</p></div>
-
+  body { font-family: system-ui, sans-serif; background: #fcfcfb; color: #222; margin: 0; padding: 40px 16px; text-align: center; }
+</style>
+</head>
+<body>
+<p id="msg">Loading the survey…</p>
 <script>
-// ---------------------------------------------------------------------------
-// SVM trial44 allocation page (built from go.html / go2.html, 1 Oct 2026).
-// ONE Prolific study points here; this forwards to one of two Google Forms:
-//   V1 = order 1,2,3,...   V2 = runs swapped 2,1,3,5,4,6,...
-//
-// Prolific study URL:
-//     https://YOURSITE/trial44.html?PROLIFIC_PID={{%PROLIFIC_PID%}}
-//
-// Allocation is a pure function of the Prolific ID, as in go.html, with one
-// change: the ID is SALTED with "trial44:" before hashing, so the trial44 arm is
-// independent of the PRIMED/CONTROL arm go.html gave the same ID.
-//   arm = top bit of fnv1a("trial44:" + PID)   ->  1 = V2, 0 = V1
-// (NOT the low bit: in FNV-1a the low bit is only the parity of the character
-// codes, so a salt cannot change it and it would copy go.html's arm exactly.)
-// Re-derive in Python with the same FNV-1a 32-bit (see trial44_alloc_check.py).
-//
-// Testing only: add &v=1 or &v=2 to force a version (Prolific never adds it).
-// ---------------------------------------------------------------------------
+// trial44 router: sends each Prolific participant to V1 or V2 of the trial44 forms.
+// Assignment is fixed by the Prolific ID (same ID -> same version every time), roughly 50/50.
+(function () {
+  var V1 = "https://docs.google.com/forms/d/e/1FAIpQLSerKQg-HnpuncB0ifYAvuWs3DvUGf0RIdct8bULEWkmPWS6KA/viewform?usp=pp_url&entry.501456709=";
+  var V2 = "https://docs.google.com/forms/d/e/1FAIpQLSc4JWBPY7eNGtxOCZ6NFeshbpv_aWD4qcGtIK2vNb27DfUfCg/viewform?usp=pp_url&entry.2063661132=";
 
-var SALT = 'trial44:';
-var FORM = {
-  V1: "https://docs.google.com/forms/d/e/1FAIpQLSerKQg-HnpuncB0ifYAvuWs3DvUGf0RIdct8bULEWkmPWS6KA/viewform?usp=pp_url&entry.501456709=__PID__",
-  V2: "https://docs.google.com/forms/d/e/1FAIpQLSc4JWBPY7eNGtxOCZ6NFeshbpv_aWD4qcGtIK2vNb27DfUfCg/viewform?usp=pp_url&entry.2063661132=__PID__"
-};
-
-function fnv1a(s){
-  var h = 2166136261;
-  for (var i = 0; i < s.length; i++){
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619) >>> 0;   // imul, not *, and force uint32
-  }
-  return h >>> 0;
-}
-
-function show(html, isErr){
-  document.getElementById('m').innerHTML = html;
-  if (isErr) document.getElementById('m').className = 'box err';
-}
-
-(function(){
   var q = new URLSearchParams(window.location.search);
-  var pid = (q.get('PROLIFIC_PID') || q.get('prolific_pid') || '').trim();
-
-  if (!pid){
-    show('<h1>Could not read your Prolific ID</h1>' +
-         '<p>Please return to Prolific and open the study from there rather than ' +
-         'from a saved link. If this keeps happening, return the submission and ' +
-         'message the researcher.</p>', true);
+  var pid = (q.get("PROLIFIC_PID") || "").trim();
+  if (!pid) {
+    document.getElementById("msg").textContent =
+      "No Prolific ID was found in the link. Please return to Prolific and open the study from there.";
     return;
   }
-
-  var force = q.get('v');
-  var arm = force === '1' ? 'V1' : force === '2' ? 'V2'
-          : ((fnv1a(SALT + pid) >>> 31) ? 'V2' : 'V1');
-  window.location.replace(FORM[arm].replace('__PID__', encodeURIComponent(pid)));
+  var force = q.get("v");                  // testing only: ?v=1 or ?v=2 forces a version
+  var h = 0;                               // simple string hash of the ID
+  for (var i = 0; i < pid.length; i++) { h = (h * 31 + pid.charCodeAt(i)) >>> 0; }
+  var useV2 = force === "2" ? true : force === "1" ? false : (h % 2 === 1);
+  window.location.replace((useV2 ? V2 : V1) + encodeURIComponent(pid));
 })();
 </script>
-</body></html>
+</body>
+</html>
