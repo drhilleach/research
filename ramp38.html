@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loading the study…</title>
+<style>
+ body{font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;margin:0;min-height:100vh;
+      display:flex;align-items:center;justify-content:center;background:#faf9f5;color:#141413;
+      padding:24px;text-align:center}
+ .box{max-width:460px} h1{font-size:19px;font-weight:600;margin:0 0 10px}
+ p{color:#555;font-size:14.5px} .err{color:#a03050}
+</style></head><body>
+<div class="box" id="m"><h1>Loading the study…</h1><p>One moment.</p></div>
+<script>
+// SVM RAMP38 allocation page (3 Oct 2026, ENTRY 51). Sends each Prolific participant to one of four forms.
+// Prolific study URL: https://drhilleach.github.io/research/ramp38.html?PROLIFIC_PID={{%PROLIFIC_PID%}}
+// form = top two bits of FNV-1a 32-bit hash of ("ramp38:" + PID): 0 L0, 1 L1, 2 S0, 3 S1.
+// Re-derive in Python with ramp38_alloc_check.py. Testing only: add &v=L0 (or L1, S0, S1) to force a form.
+var FORM = {
+  L0: "https://docs.google.com/forms/d/e/1FAIpQLScneChY9GasUFuoKvqBXKnpht5JkJTWY8ZpnJSOnOtZs_zOgQ/viewform?usp=pp_url&entry.507519102=__PID__",
+  L1: "https://docs.google.com/forms/d/e/1FAIpQLSdT5E0vTyNGXl_vh0WGn_BMgsJYQDYHWz1Kb2lOCbcUQeHglQ/viewform?usp=pp_url&entry.126686787=__PID__",
+  S0: "https://docs.google.com/forms/d/e/1FAIpQLSciuae2eUtg0IMl49k3YUgEUCkYpRqhg-lKLMFPo4lcSd7kHw/viewform?usp=pp_url&entry.61664814=__PID__",
+  S1: "https://docs.google.com/forms/d/e/1FAIpQLSc52paOQoYVhLpuGPsWYUodsXqlNBFo9OTOuXTiKhBQ6gj13w/viewform?usp=pp_url&entry.1017283356=__PID__"
+};
+var ORDER = ['L0', 'L1', 'S0', 'S1'];
+function fnv1a(s){ var h = 2166136261;
+  for (var i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return h >>> 0; }
+function show(html){ var m = document.getElementById('m'); m.innerHTML = html; m.className = 'box err'; }
+(function(){
+  var q = new URLSearchParams(window.location.search);
+  var pid = (q.get('PROLIFIC_PID') || q.get('prolific_pid') || '').trim();
+  if (!pid){ show('<h1>Could not read your Prolific ID</h1><p>Please return to Prolific and open the study from ' +
+                  'there rather than from a saved link. If this keeps happening, return the submission and message the researcher.</p>'); return; }
+  var force = q.get('v');
+  var k = (force && FORM[force]) ? force : ORDER[fnv1a('ramp38:' + pid) >>> 30];
+  var url = FORM[k];
+  if (url.indexOf('PASTE_') !== -1){ show('<h1>Setup incomplete</h1><p>The form links have not been filled in yet.</p>'); return; }
+  window.location.replace(url.replace('__PID__', encodeURIComponent(pid)));
+})();
+</script>
+</body></html>
