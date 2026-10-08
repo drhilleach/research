@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loading the study…</title>
+<style>
+ body{font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;margin:0;min-height:100vh;
+      display:flex;align-items:center;justify-content:center;background:#faf9f5;color:#141413;
+      padding:24px;text-align:center}
+ .box{max-width:460px} h1{font-size:19px;font-weight:600;margin:0 0 10px}
+ p{color:#555;font-size:14.5px} .err{color:#a03050}
+</style></head><body>
+<div class="box" id="m"><h1>Loading the study…</h1><p>One moment.</p></div>
+<script>
+// SVM CALIB59 allocation page (ENTRY 65 Step 2). Sends each Prolific participant to one of three forms.
+// Prolific study URL: https://drhilleach.github.io/research/calib59r.html?PROLIFIC_PID={{%PROLIFIC_PID%}}
+// form = (FNV-1a 32-bit hash of ("calib59:" + PID)) mod 3: 0 O123, 1 O231, 2 O312.
+// Re-derive in Python with calib59_assemble.py (function alloc). Testing only: add &v=O123 (or O231, O312) to force a form.
+var FORM = {
+  O123: "https://docs.google.com/forms/d/e/1FAIpQLSfeUhMW4nStmskvjTUSjDg80q33G_l1_nc1fEAUon_ZzECbfg/viewform?usp=pp_url&entry.268146443=__PID__",
+  O231: "https://docs.google.com/forms/d/e/1FAIpQLSc4oUJQYAAw_ML1YVnwaEbT-5ocV0hjaxDdTozmKsI-DZQo6w/viewform?usp=pp_url&entry.1328368527=__PID__",
+  O312: "https://docs.google.com/forms/d/e/1FAIpQLSesr2n6uE-zn7ObdSt6K-ScVb7hzq6owdx0u3KhjAH94vsUUA/viewform?usp=pp_url&entry.1471113681=__PID__"
+};
+var ORDER = ['O123', 'O231', 'O312'];
+function fnv1a(s){ var h = 2166136261;
+  for (var i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return h >>> 0; }
+function show(html){ var m = document.getElementById('m'); m.innerHTML = html; m.className = 'box err'; }
+(function(){
+  var q = new URLSearchParams(window.location.search);
+  var pid = (q.get('PROLIFIC_PID') || q.get('prolific_pid') || '').trim();
+  if (!pid){ show('<h1>Could not read your Prolific ID</h1><p>Please return to Prolific and open the study from ' +
+                  'there rather than from a saved link. If this keeps happening, return the submission and message the researcher.</p>'); return; }
+  var force = q.get('v');
+  var k = (force && FORM[force]) ? force : ORDER[fnv1a('calib59:' + pid) % 3];
+  var url = FORM[k];
+  if (url.indexOf('PASTE_') !== -1){ show('<h1>Setup incomplete</h1><p>The form links have not been filled in yet.</p>'); return; }
+  window.location.replace(url.replace('__PID__', encodeURIComponent(pid)));
+})();
+</script>
+</body></html>
