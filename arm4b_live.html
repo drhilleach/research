@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loading the study…</title>
+<style>
+ body{font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;margin:0;min-height:100vh;
+      display:flex;align-items:center;justify-content:center;background:#faf9f5;color:#141413;
+      padding:24px;text-align:center}
+ .box{max-width:460px} h1{font-size:19px;font-weight:600;margin:0 0 10px}
+ p{color:#555;font-size:14.5px} .err{color:#a03050}
+</style></head><body>
+<div class="box" id="m"><h1>Loading the study…</h1><p>One moment.</p></div>
+<script>
+// SVM ARM4B allocation page (four-arm, two-block priming). Sends each Prolific participant to one of four arms.
+// Prolific study URL: https://drhilleach.github.io/research/arm4b_live.html?PROLIFIC_PID={{%PROLIFIC_PID%}}
+// form = (FNV-1a 32-bit hash of ("arm4b:" + PID)) mod 4: 0 A, 1 B, 2 C, 3 D.
+// Re-derive in Python: FORMS[fnv1a('arm4b:'+pid) % 4]. Testing only: add &v=A (or B, C, D) to force an arm.
+var FORM = {
+  A: "https://docs.google.com/forms/d/e/1FAIpQLSdYEWANQphdHXWmIIrM5OkDkXZRXptpgaxMrYe5kkPoAWO-DA/viewform?usp=pp_url&entry.389864917=__PID__",
+  B: "https://docs.google.com/forms/d/e/1FAIpQLSdHDc9Iann9kKf-SsyqJQOVu1fIWqxMdBPo66veWV545z9lWg/viewform?usp=pp_url&entry.487582524=__PID__",
+  C: "https://docs.google.com/forms/d/e/1FAIpQLScAAnxx_O1uSlKbPNtKjLKC2pr5URVV_qzNMwM9inXXwIivLQ/viewform?usp=pp_url&entry.1143743373=__PID__",
+  D: "https://docs.google.com/forms/d/e/1FAIpQLScVTwHKj8tOacL145ozwGjA2QXNkUQN2puXYGJaBR2GFnG0Pw/viewform?usp=pp_url&entry.1560792290=__PID__"
+};
+var ORDER = ['A', 'B', 'C', 'D'];
+function fnv1a(s){ var h = 2166136261;
+  for (var i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return h >>> 0; }
+function show(html){ var m = document.getElementById('m'); m.innerHTML = html; m.className = 'box err'; }
+(function(){
+  var q = new URLSearchParams(window.location.search);
+  var pid = (q.get('PROLIFIC_PID') || q.get('prolific_pid') || '').trim();
+  if (!pid){ show('<h1>Could not read your Prolific ID</h1><p>Please return to Prolific and open the study from ' +
+                  'there rather than from a saved link. If this keeps happening, return the submission and message the researcher.</p>'); return; }
+  var force = q.get('v');
+  var k = (force && FORM[force]) ? force : ORDER[fnv1a('arm4b:' + pid) % 4];
+  var url = FORM[k];
+  if (url.indexOf('PASTE_') !== -1){ show('<h1>Setup incomplete</h1><p>The form links have not been filled in yet.</p>'); return; }
+  window.location.replace(url.replace('__PID__', encodeURIComponent(pid)));
+})();
+</script>
+</body></html>
